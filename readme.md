@@ -16,6 +16,8 @@ Elasticquent uses the [official Elasticsearch PHP API](https://github.com/elasti
     * [Setting a Custom Index Name](#setting-a-custom-index-name)
     * [Setting a Custom Type Name](#setting-a-custom-type-name)
 * [Indexing Documents](#indexing-documents)
+    * [Eager Loading](#eager-loading)
+    * [Query Scopes](#query-scopes)
 * [Searching](#searching)
     * [Search Collections](#search-collections)
     * [Search Collection Documents](#search-collection-documents)
@@ -30,20 +32,26 @@ Elasticquent uses the [official Elasticsearch PHP API](https://github.com/elasti
 
 Elasticquent allows you take an Eloquent model and easily index and search its contents in Elasticsearch.
 
-    $books = Book::where('id', '<', 200)->get();
-    $books->addToIndex();
+```php
+$books = Book::where('id', '<', 200)->get();
+$books->addToIndex();
+```
 
 When you search, instead of getting a plain array of search results, you instead get an Eloquent collection with some special Elasticsearch functionality.
 
-    $books = Book::search('Moby Dick')->get();
-    echo $books->totalHits();
+```php
+$books = Book::search('Moby Dick')->get();
+echo $books->totalHits();
+```
 
 Plus, you can still use all the Eloquent collection functionality:
 
-    $books = $books->filter(function($book)
-    {
-        return $book->hasISBN();
-    });
+```php
+$books = $books->filter(function($book)
+{
+    return $book->hasISBN();
+});
+```
 
 Check out the rest of the documentation for how to get started using Elasticsearch and Elasticquent!
 
@@ -80,7 +88,7 @@ If you need to pass a special configuration array Elasticsearch, you can add tha
 ```php
 <?php
 
-return array(
+return [
 
     /*
     |--------------------------------------------------------------------------
@@ -111,7 +119,7 @@ return array(
 
     'default_index' => 'my_custom_index_name',
 
-);
+];
 
 ```
 
@@ -121,35 +129,45 @@ While you can definitely build your indexes and mapping through the Elasticsearc
 
 If you want a simple way to create indexes, Elasticquent models have a function for that:
 
-    Book::createIndex($shards = null, $replicas = null);
+```php
+Book::createIndex($shards = null, $replicas = null);
+```
 
-For mapping, you can set a `mappingProperties` property in your model and use some mapping functions from there:
+For mapping, you can set a `mappingProperties` property in your model, or call the `setMappingProperties`, and use some mapping functions from there:
 
 ```php
-protected $mappingProperties = array(
-   'title' => array(
+protected $mappingProperties = [
+   'title' => [
         'type' => 'string',
         'analyzer' => 'standard'
-    )
-);
+    ]
+];
 ```
 
 If you'd like to setup a model's type mapping based on your mapping properties, you can use:
 
-    Book::putMapping($ignoreConflicts = true);
+```php
+Book::putMapping($ignoreConflicts = true);
+```
 
 To delete a mapping:
 
-    Book::deleteMapping();
+```php
+Book::deleteMapping();
+```
 
 To rebuild (delete and re-add, useful when you make important changes to your mapping) a mapping:
 
-    Book::rebuildMapping();
+```php
+Book::rebuildMapping();
+```
 
 You can also get the type mapping and check if it exists.
 
-    Book::mappingExists();
-    Book::getMapping();
+```php
+Book::mappingExists();
+Book::getMapping();
+```
 
 ### Setting a Custom Index Name
 
@@ -158,7 +176,7 @@ Elastiquent will use `default` as your index name, but you can set a custom inde
 ```php
 <?php
 
-return array(
+return [
 
     /*
     |--------------------------------------------------------------------------
@@ -171,7 +189,7 @@ return array(
 
     'default_index' => 'my_custom_index_name',
 
-);
+];
 ```
 
 ### Setting a Custom Type Name
@@ -187,45 +205,130 @@ function getTypeName()
 
 To check if the type for the Elasticquent model exists yet, use `typeExists`:
 
-    $typeExists = Book::typeExists();
+```php
+$typeExists = Book::typeExists();
+```
 
 ## Indexing Documents
 
 To index all the entries in an Eloquent model, use `addAllToIndex`:
 
-    Book::addAllToIndex();
+```php
+Book::addAllToIndex();
+
+// To index 1000 books at a time
+Book::addAllToIndex(1000);
+```
 
 You can also index a collection of models:
 
-    $books = Book::where('id', '<', 200)->get();
-    $books->addToIndex();
+```php
+$books = Book::where('id', '<', 200)->get();
+$books->addToIndex();
+```
 
 You can index individual entries as well:
 
-    $book = Book::find($id);
-    $book->addToIndex();
+```php
+$book = Book::find($id);
+$book->addToIndex();
+```
 
 You can also reindex an entire model:
 
-    Book::reindex();
+```php
+Book::reindex();
+
+// To index 1000 books at a time
+Book::reindex(1000);
+```
+
+### Eager Loading
+
+To eager load your relationships either set the `indexRelations` property on your model or call the `setIndexRelations` method on the model.
+
+```php
+protected $indexRelations = [
+    'author',
+    'buyer',
+];
+```
+
+Eager loading applies to either the `reindex` or `addAllToIndex` functions.
+
+```php
+// this will now reindex all books and 
+// the author and buyer relationships will
+// be eager loaded
+Book::reindex();
+```
+
+This is done using the `with` method on eloquent models. Have a look at the [Laravel Docs](http://laravel.com/docs/4.2/eloquent#eager-loading) for more information on the `with` method.
+
+### Query Scopes
+
+To apply query scopes either set the `indexQueryScopes` property on the model or call the `setIndexQueryScopes` method on the model.
+
+```php
+protected $indexQueryScopes = [
+    'active',
+    // scope of relationship
+    'buyer' => function ($query) {
+        $query->recent();
+    }
+];
+```
+
+Query scopes apply to either the `reindex` or `addAllToIndex` functions.
+
+```php
+// this will now reindex all books and apply
+// the active scope and the recent scope on
+// the buyer relationship
+Book::reindex();
+```
+
+Have a look at the [Laravel Docs](http://laravel.com/docs/4.2/eloquent#query-scopes) for more information on query scopes.
 
 ## Searching
 
-There are two ways to search in Elasticquent. The first is a simple term search that searches all fields.
+There are three ways to search in Elasticquent. All search methods will return a search collection.
 
-    $books = Book::search('Moby Dick');
+The first is a simple term search that searches all fields.
+
+```php
+$books = Book::search('Moby Dick');
+```
+
+Here's the list of available paramers for `search`:
+
+- `term` - Your ElasticSearch query term
+- `limit` - Number of records to return
+- `offset` - Sets the record offset (use for paging results)
 
 The second is a query based search for more complex searching needs:
 
-    $books = Book::searchByQuery(array('match' => array('title' => 'Moby Dick')));
+```php
+$books = Book::searchByQuery(['match' => ['title' => 'Moby Dick']]);
+```
 
-Both methods will return a search collection.
+Here's the list of available paramers for `searchByQuery`:
 
-Here's the list of available paramers:
-
-- `query` - Your ElasticSearch Query
+- `query` - Your ElasticSearch query
 - `aggregations` - The Aggregations you wish to return. [See Aggregations for details](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/search-aggregations.html).
 - `sourceFields` - Limits returned set to the selected fields only
+- `limit` - Number of records to return
+- `offset` - Sets the record offset (use for paging results)
+
+The third is a custom elasticsearch query:
+
+```php
+$books = Book::searchCustom(['body' => ['query' => ['term' => ['title' => 'Moby Dick']]]]);
+```
+
+Here's the list of available paramers for `searchCustom`:
+
+- `params` - Your ElasticSearch custom search paramaters
 - `limit` - Number of records to return
 - `offset` - Sets the record offset (use for paging results)
 
@@ -235,37 +338,53 @@ When you search on an Elasticquent model, you get a search collection with some 
 
 You can get total hits:
 
-    $books->totalHits();
+```php
+$books->totalHits();
+```
 
 Access the shards array:
 
-    $books->shards();
+```php
+$books->shards();
+```
 
 Access the max score:
 
-    $books->maxScore();
+```php
+$books->maxScore();
+```
 
 Access the timed out boolean property:
 
-    $books->timedOut();
+```php
+$books->timedOut();
+```
 
 And access the took property:
 
-    $books->took();
+```php
+$books->took();
+```
 
 And access search aggregations - [See Aggregations for details](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/search-aggregations.html):
 
-    $books->getAggregations();
+```php
+$books->getAggregations();
+```
 
 ### Search Collection Documents
 
 Items in a search result collection will have some extra data that comes from Elasticsearch. You can always check and see if a model is a document or not by using the `isDocument` function:
 
-    $book->isDocument();
+```php
+$book->isDocument();
+```
 
 You can check the document score that Elasticsearch assigned to this document with:
 
-    $book->documentScore();
+```php
+$book->documentScore();
+```
 
 ### Using the Search Collection Outside of Elasticquent
 
@@ -274,10 +393,10 @@ If you're dealing with raw search data from outside of Elasticquent, you can use
 ```php
 $client = new \Elasticsearch\Client();
 
-$params = array(
+$params = [
     'index' => 'default',
     'type'  => 'books'
-);
+];
 
 $params['body']['query']['match']['title'] = 'Moby Dick';
 
@@ -298,11 +417,11 @@ By default, Elasticquent will use the entire attribute array for your Elasticsea
 ```php
 function getIndexDocumentData()
 {
-    return array(
+    return [
         'id'      => $this->id,
         'title'   => $this->title,
         'custom'  => 'variable'
-    );
+    ];
 }
 ```
 Be careful with this, as Elasticquent reads the document source into the Eloquent model attributes when creating a search result collection, so make sure you are indexing enough data for your the model functionality you want to use.
