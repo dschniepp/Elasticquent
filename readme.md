@@ -93,12 +93,14 @@ return array(
     | http://www.elasticsearch.org/guide/en/elasticsearch/client/php-api/current/_configuration.html
     */
 
-    'config' => [
-        'hosts'     => ['localhost:9200'],
-        'logging'   => true,
-        'logPath'   => storage_path() . '/logs/elasticsearch.log',
-        'logLevel'  => Monolog\Logger::WARNING,
-    ],
+      'config' => [
+         'hosts'     => array('localhost:9200'),
+         'logging'   => true,
+         'logPath'   => storage_path() . '/logs/elasticsearch.log', 
+         'logLevel'  => Monolog\Logger::WARNING,
+         'tracePath' => storage_path() . '/logs/elasticsearch.log',
+         'traceLevel'=> Monolog\Logger::WARNING,
+      ],
 
     /*
     |--------------------------------------------------------------------------
@@ -109,7 +111,7 @@ return array(
     | Elastiquent models.
     */
 
-    'default_index' => 'my_custom_index_name',
+      'default_index' => 'my_custom_index_name',
 
 );
 
