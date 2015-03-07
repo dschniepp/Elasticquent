@@ -591,7 +591,7 @@ trait ElasticquentTrait
         if($analysis) {
             $index['body']['settings']['analysis'] = $analysis;
         }
-        
+
         return $instance->getElasticSearchClient()->indices()->create($index);
     }
 
@@ -623,25 +623,6 @@ trait ElasticquentTrait
         $params = ['index' => $instance->getIndexName()];
 
         return $instance->getElasticSearchClient()->indices()->exists($params);
-    }
-
-
-    /**
-     * Delete Index
-     *
-     * @return array
-     */
-    public static function deleteIndex()
-    {
-        $instance = new static;
-
-        $client = $instance->getElasticSearchClient();
-
-        $index = array(
-            'index'     => $instance->getIndexName()
-        );
-
-        return $client->indices()->delete($index);
     }
 
     /**
