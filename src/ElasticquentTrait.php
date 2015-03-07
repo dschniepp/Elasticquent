@@ -483,7 +483,7 @@ trait ElasticquentTrait
      * @param int $replicas
      * @return array
      */
-    public static function createIndex($shards = null, $replicas = null)
+    public static function createIndex($shards = null, $replicas = null, $analysis = null)
     {
         $instance = new static;
 
@@ -499,6 +499,10 @@ trait ElasticquentTrait
 
         if ($replicas) {
             $index['body']['settings']['number_of_replicas'] = $replicas;
+        }
+
+        if($analysis) {
+            $index['body']['settings']['analysis'] = $analysis;
         }
 
         return $client->indices()->create($index);
