@@ -258,7 +258,7 @@ trait ElasticquentTrait
         if ($aggregations) {
             $params['body']['aggs'] = $aggregations;
         }
-        
+
         if ($sort) {
             $params['body']['sort'] = $sort;
         }
@@ -502,6 +502,25 @@ trait ElasticquentTrait
         }
 
         return $client->indices()->create($index);
+    }
+
+
+    /**
+     * Delete Index
+     *
+     * @return array
+     */
+    public static function deleteIndex()
+    {
+        $instance = new static;
+
+        $client = $instance->getElasticSearchClient();
+
+        $index = array(
+            'index'     => $instance->getIndexName()
+        );
+
+        return $client->indices()->delete($index);
     }
 
     /**
